@@ -11,6 +11,12 @@ RUN apt-get update && apt-get install -y build-essential
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
+# 1. 덩치가 큰 PyTorch를 가벼운 CPU 전용 버전으로 먼저 설치하게 강제합니다. (여기를 추가하세요!)
+RUN pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cpu
+
+# 2. 그다음 나머지 패키지들을 마저 설치합니다.
+RUN pip install --no-cache-dir -r requirements.txt
+
 # 5. [핵심] 챗봇 실행 코드와 만들어둔 '뇌(DB)' 폴더만 컨테이너로 복사합니다.
 COPY chat_with_gemini.py .
 COPY chroma_db/ ./chroma_db/
