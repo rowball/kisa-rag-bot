@@ -5,19 +5,16 @@ FROM python:3.11-slim
 WORKDIR /app
 
 # 3. 필수 C++ 빌드 도구를 설치합니다 (ChromaDB 구동에 필요)
-RUN apt-get update && apt-get install -y build-essential
+# 캐시 폴더까지 깔끔하게 지워 도커 이미지 용량을 몇십 MB 더 다이어트합니다.
+RUN apt-get update && apt-get install -y build-essential && \
+    rm -rf /var/lib/apt/lists/*
 
-# 4. 방금 만든 패키지 명세서를 복사하고 설치합니다.
+# 4. 패키지 명세서를 복사하고 설치합니다.
+# requirements.txt 맨 첫 줄에 적어둔 CPU 인덱스 규칙을 따라 아주 가볍게 설치됩니다.
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-# 1. 덩치가 큰 PyTorch를 가벼운 CPU 전용 버전으로 먼저 설치하게 강제합니다. (여기를 추가하세요!)
-RUN pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cpu
-
-# 2. 그다음 나머지 패키지들을 마저 설치합니다.
-RUN pip install --no-cache-dir -r requirements.txt
-
-# 5. [핵심] 챗봇 실행 코드와 만들어둔 '뇌(DB)' 폴더만 컨테이너로 복사합니다.
+# 5. 챗봇 실행 코드와 만들어둔 '뇌(DB)' 폴더만 컨테이너로 복사합니다.
 COPY chat_with_gemini.py .
 COPY chroma_db/ ./chroma_db/
 
