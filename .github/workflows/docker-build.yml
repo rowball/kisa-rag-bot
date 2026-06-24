@@ -1,0 +1,30 @@
+name: Docker Build CI
+
+# 언제 이 자동화 스크립트를 실행할 것인가?
+on:
+  push:
+    branches: [ "main" ] # main 브랜치에 코드가 올라올 때마다
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  build:
+    # 깃허브가 제공하는 무료 우분투(리눅스) 서버에서 실행
+    runs-on: ubuntu-latest
+
+    steps:
+    # 1. 깃허브 저장소에서 내 코드 파일들을 가져옴
+    - name: 저장소 코드 가져오기 (Checkout)
+      uses: actions/checkout@v4
+
+    # 2. 도커(Docker) 명령어를 쓸 수 있게 서버 세팅
+    - name: Docker 환경 설정 (Set up Docker Buildx)
+      uses: docker/setup-buildx-action@v3
+
+    # 3. 작성한 Dockerfile을 바탕으로 챗봇 이미지 빌드 테스트
+    - name: Docker 이미지 빌드
+      uses: docker/build-push-action@v5
+      with:
+        context: .
+        push: false # 아직 실제 서버에 배포하는 건 아니므로 테스트용으로만 빌드
+        tags: kisa-bot:latest
