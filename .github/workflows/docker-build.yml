@@ -1,30 +1,46 @@
-name: Docker Build CI
+name: Docker Build & Deploy CI/CD
 
-# 언제 이 자동화 스크립트를 실행할 것인가?
 on:
   push:
-    branches: [ "main" ] # main 브랜치에 코드가 올라올 때마다
-  pull_request:
-    branches: [ "main" ]
+    branches: [ "main" ] # main 브랜치에 코드가 올라올 때마다 실행
 
 jobs:
-  build:
-    # 깃허브가 제공하는 무료 우분투(리눅스) 서버에서 실행
+  deploy:
     runs-on: ubuntu-latest
 
     steps:
-    # 1. 깃허브 저장소에서 내 코드 파일들을 가져옴
-    - name: 저장소 코드 가져오기 (Checkout)
+    # 1. 깃허브 가상 서버에 내 코드 가져오기 및 빌드 테스트 (CI)
+    - name: 저장소 코드 가져오기
       uses: actions/checkout@v4
 
-    # 2. 도커(Docker) 명령어를 쓸 수 있게 서버 세팅
-    - name: Docker 환경 설정 (Set up Docker Buildx)
+    - name: Docker 환경 설정
       uses: docker/setup-buildx-action@v3
 
-    # 3. 작성한 Dockerfile을 바탕으로 챗봇 이미지 빌드 테스트
-    - name: Docker 이미지 빌드
+    - name: Docker 이미지 빌드 테스트
       uses: docker/build-push-action@v5
       with:
         context: .
-        push: false # 아직 실제 서버에 배포하는 건 아니므로 테스트용으로만 빌드
+        push: false
         tags: kisa-bot:latest
+
+    # 2. 금고의 마스터키를 꺼내 AWS EC2 원격 접속 및 자동 배포 (CD)
+    - name: AWS EC2 서버로 배포
+      uses: appleboy/ssh-action@master
+      with:
+        host: ${{ secrets.EC2_HOST }}
+        username: ${{ secrets.EC2_USERNAME }}
+        key: ${{ secrets.EC2_SSH_KEY }}
+        script: |
+          # 1. 서버에 프로젝트 폴더가 없으면 새로 받고, 있으면 최신 코드로 업데이트
+          if [ ! -d "kisa-rag-bot" ]; then
+            git clone https://github.com/rowball/kisa-rag-bot.git
+          fi
+          cd kisa-rag-bot
+          git pull origin main
+          
+          # 2. 기존에 돌고 있던 챗봇 캡슐이 있다면 끄고 폐기
+          docker stop kisa-bot || true
+          docker rm kisa-bot || true
+          
+          # 3. 최신 코드를 바탕으로 새로운 도커 이미지(캡슐) 장전!
+          docker build -t kisa-bot:latest .
