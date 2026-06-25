@@ -10,8 +10,12 @@ from langchain_core.output_parsers import StrOutputParser
 
 print("🤖 순수 LCEL 기반의 초고속 Gemini 챗봇을 준비 중입니다...")
 
-# 1. API 키 설정
-os.environ["GOOGLE_API_KEY"] = "AIzaSyCq-S8-bGkYabUIzR_FG9yS_nB6kZkB10s"
+# 1. .env 파일에 숨겨둔 열쇠 가져오기
+load_dotenv()
+api_key = os.environ.get("GOOGLE_API_KEY")
+
+# 2. 가져온 열쇠로 세팅하기 (코드에는 열쇠가 보이지 않음!)
+genai.configure(api_key=api_key)
 
 # 2. 뇌(벡터 DB) 불러오기
 embeddings = HuggingFaceEmbeddings(
